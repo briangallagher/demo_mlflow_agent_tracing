@@ -1,0 +1,61 @@
+[project]
+name = "demo_mlflow_agent_tracing"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+authors = [
+    { name = "First Last", email = "flast@redhat.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "chainlit>=2.9.6",
+    "fastmcp>=2.14.4",
+    "langchain>=1.2.7",
+    "langchain-chroma>=1.1.0",
+    "langchain-core>=1.2.7",
+    "langchain-google-vertexai>=3.2.1",
+    "langchain-mcp-adapters>=0.2.1",
+    "langchain-openai>=1.1.7",
+    "langchain-text-splitters>=1.1.0",
+    "langgraph>=1.0.7",
+    "langgraph-checkpoint-sqlite>=3.0.3",
+    "mlflow>=3.8.1",
+    "python-frontmatter>=1.1.0",
+]
+
+[project.scripts]
+main = "demo_mlflow_agent_tracing.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest~=8.1",
+    "pytest-cov>=4.0.0,<5",
+    "ruff>=0.4.1,<0.5",
+    "bump2version>=1.0.1,<2",
+    # "git-cliff>=2.8,<3",
+]
+
+[[tool.uv.index]]
+name = "de-cop-nexus"
+url = "https://nexus.corp.redhat.com/repository/de-cop-pypi-releases/simple"
+explicit = true
+
+[tool.ruff]
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E", "F", "D", "C", "N"]
+ignore = [
+    "E501", # line-too-long
+    "E402", # module-import-not-at-top-file
+    "D203", # one-blank-line-before-class
+    "D212", # multi-line-summary-first-line
+    "D100", # undocumented-public-module
+    "D407",
+    "D413",
+]
+per-file-ignores = { "tests/*" = ["D"] }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
