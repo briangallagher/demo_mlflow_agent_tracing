@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Union
+from typing import Any, Union
 
 import frontmatter
 from fastmcp import FastMCP
@@ -51,7 +51,7 @@ def extract_markdown_content(content: str) -> Union[str, None]:
 
 
 @mcp.tool
-def create_new_wiki_page(topic: str) -> str:
+def create_new_wiki_page(topic: str) -> dict[str, str]:
     """
     Create and save a new wiki page.
 
@@ -86,13 +86,13 @@ def create_new_wiki_page(topic: str) -> str:
         with open(path, "w") as f:
             f.write(wiki_page.strip())
 
-        return f"Successfully wrote and saved a new wiki page for topic '{topic}'"
+        return {"message": f"Successfully wrote and saved a new wiki page for topic '{topic}'"}
     except Exception as e:
-        return f"Failed to write and save a new wiki page for topic '{topic}': {str(e)}"
+        return {"error": f"Failed to write and save a new wiki page for topic '{topic}': {str(e)}"}
 
 
 @mcp.tool
-def list_wiki_pages():
+def list_wiki_pages() -> dict[str, Any]:
     """
     List available wiki pages.
 
@@ -108,9 +108,9 @@ def list_wiki_pages():
         titles = [frontmatter.loads(page.read_text()).get("title") for page in pages]
         titles = [title for title in titles if title is not None]
 
-        return titles
+        return {"titles": titles}
     except Exception as e:
-        return f"Failed to list files: {str(e)}"
+        return {"error": f"Failed to list files: {str(e)}"}
 
 
 # TODO
