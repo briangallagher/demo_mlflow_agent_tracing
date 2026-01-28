@@ -1,9 +1,9 @@
 import re
 from datetime import datetime
+from typing import Union
 
 import frontmatter
 from fastmcp import FastMCP
-from langchain_core.tools import ToolException
 
 from demo_mlflow_agent_tracing.chat_model import get_chat_model
 from demo_mlflow_agent_tracing.constants import WIKI_PATH
@@ -41,6 +41,15 @@ created_date: "{date}"
 """.strip()
 
 
+def extract_markdown_content(content: str) -> Union[str, None]:
+    """Extract markdown content from the given string."""
+    pattern = r".*?```(markdown)?(.*?)```.*?"
+    match = re.search(pattern, content, re.DOTALL | re.MULTILINE)
+    if match:
+        return match.group(2).strip()
+    return None
+
+
 @mcp.tool
 def create_new_wiki_page(topic: str) -> str:
     """
@@ -58,19 +67,18 @@ def create_new_wiki_page(topic: str) -> str:
     llm = get_chat_model()
     llm.temperature = 0.3
     prompt = WIKI_WRITER_PROMPT.format(topic=topic, date=datetime.now().date())
-    pattern = r"```markdown(.*)```"
     retry_count = 0
     wiki_page = None
     while retry_count < 3:
         response = llm.invoke([{"role": "user", "content": prompt}])
         raw_page_content = response.content
-        if re.match(pattern, raw_page_content, flags=re.DOTALL | re.MULTILINE):
-            wiki_page = re.search(pattern, raw_page_content, flags=re.DOTALL | re.MULTILINE).group(1)
+        markdown_content = extract_markdown_content(raw_page_content)
+        if markdown_content is not None:
             break
         retry_count += 1
 
     if wiki_page is None:
-        raise ToolException("Failed to generate wiki page. Please try again later.")
+        wiki_page = raw_page_content
 
     # Save wiki page
     path = WIKI_PATH / (topic.title() + ".md")
