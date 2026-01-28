@@ -30,6 +30,13 @@ spec:
             requests:
               cpu: "1"
               memory: 1Gi
+          volumeMounts:
+            - name: db-volume
+              mountPath: /opt/app-root/src/db
+              readOnly: false
+      volumes:
+        - name: db-volume
+          emptyDir: {}
       restartPolicy: Always
   strategy:
     type: RollingUpdate
