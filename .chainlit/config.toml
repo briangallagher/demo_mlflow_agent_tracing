@@ -69,7 +69,7 @@ reaction_on_message_received = false
 
 [UI]
 # Name of the assistant.
-name = "Expense Agent"
+name = "Agent"
 
 default_theme = "dark"
 
