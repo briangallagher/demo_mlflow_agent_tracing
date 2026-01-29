@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     EMBEDDING_API_KEY: Optional[SecretStr] = Field(None, description="API key for authenticating with the server")
     EMBEDDING_MODEL_NAME: Optional[str] = Field(None, description="Name of the model to use (e.g. `nomic-embed-text`)")
     EMBEDDING_BASE_URL: Optional[str] = Field(None, description="Base URL of the server")
+    EMBEDDING_DOCUMENT_PREFIX: Optional[str] = Field(None, description="Prefix for embeddings for documents")
+    EMBEDDING_SEARCH_PREFIX: Optional[str] = Field(None, description="Prefix for embeddings for search queries")
 
     # Chainlit
     CHAINLIT_AUTH_SECRET: Optional[SecretStr] = Field(

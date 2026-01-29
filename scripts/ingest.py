@@ -3,6 +3,7 @@ import logging
 from datasets import load_dataset
 from demo_mlflow_agent_tracing.constants import DB_PATH
 from demo_mlflow_agent_tracing.db import get_db
+from demo_mlflow_agent_tracing.settings import Settings
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,9 @@ def main():
         return
 
     logger.info("Chroma store does not exist, creating...")
+
+    # Load settings
+    settings = Settings()
 
     # Load the text corpus
     dataset = "rag-datasets/rag-mini-wikipedia"
@@ -32,6 +36,10 @@ def main():
         # Get the file content and id
         content = row["passage"]
         row_id = row["id"]
+        
+        # Add document prefix (if exists)
+        if settings.EMBEDDING_DOCUMENT_PREFIX is not None:
+            content = settings.EMBEDDING_DOCUMENT_PREFIX + content
 
         # Create a document
         document = Document(page_content=content, metadata={"row_id": row_id, "dataset": dataset})

@@ -50,6 +50,7 @@ async def build_agent():
                     "EMBEDDING_API_KEY": settings.EMBEDDING_API_KEY.get_secret_value(),
                     "EMBEDDING_MODEL_NAME": settings.EMBEDDING_MODEL_NAME,
                     "EMBEDDING_BASE_URL": settings.EMBEDDING_BASE_URL,
+                    "EMBEDDING_SEARCH_PREFIX": settings.EMBEDDING_SEARCH_PREFIX,
                 },
             }
         }
