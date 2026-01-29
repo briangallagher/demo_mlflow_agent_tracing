@@ -1,8 +1,8 @@
 db/*
 !db/.gitkeep
 
-wiki/*
-!wiki/.gitkeep
+vectordb/*
+!vectordb/.gitkeep
 
 mlflow.db
 mlruns

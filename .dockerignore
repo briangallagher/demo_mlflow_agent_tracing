@@ -7,7 +7,7 @@
 !public
 !scripts
 !tests
-!wiki/.gitkeep
+!vectordb
 !.env.example
 !.gitignore
 !.justfile
