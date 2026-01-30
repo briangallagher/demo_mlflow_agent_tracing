@@ -44,13 +44,8 @@ async def set_starters():
     return [
         cl.Starter(
             label="Ask",
-            message="How are otters playful animals?",
+            message="What is included in the Dark-Side Health Plan?",
             icon="/public/sparkle.svg",
-        ),
-        cl.Starter(
-            label="Search",
-            message="Find me articles about animals.",
-            icon="/public/magnifying-glass.svg",
         ),
         cl.Starter(
             label="Irrelevant",
