@@ -34,9 +34,13 @@ def main():
     documents = []
     for row in corpus:
         # Get the file content and id
-        content = row["passage"]
-        row_id = row["id"]
-        
+        content: str = row["passage"]
+        row_id: int = row["id"]
+
+        # Remove any content less than 20 words
+        if len(content.split(" ")) < 20:
+            continue
+
         # Add document prefix (if exists)
         if settings.EMBEDDING_DOCUMENT_PREFIX is not None:
             content = settings.EMBEDDING_DOCUMENT_PREFIX + content
@@ -46,7 +50,7 @@ def main():
         documents.append(document)
 
     # Save the document to chroma
-    logger.info("Loading texts into Chroma DB...")
+    logger.info(f"Loading {len(documents)} texts into Chroma DB...")
     db.add_documents(documents=documents)
 
 
