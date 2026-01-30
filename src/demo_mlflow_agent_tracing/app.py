@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger.info(f"Settings loaded: {settings}")
 
 # Start MLFlow Autolog
-mlflow.langchain.autolog()
+mlflow.langchain.autolog(run_tracer_inline=True)
 
 
 @cl.password_auth_callback
@@ -65,15 +65,6 @@ async def start_chat():
 async def setup_chat(chat_settings: dict[str, Any]):
     """Apply chat settings."""
     cl.user_session.set("chat_settings", chat_settings)
-
-
-async def thinking(generator: AsyncIterator[dict[str, Any] | Any]):
-    """Run thinking step."""
-    async with cl.Step(name="Thinking", type="llm") as thinking_step:
-        async for token, metadata in generator:
-            if token.content == "</think>":
-                break
-            await thinking_step.stream_token(token.content)
 
 
 async def tool_response(token):
@@ -123,7 +114,13 @@ async def stream_agent_response(input: Union[str, Command], config: dict, contex
     # Create the response generator
     agent = await build_agent()
     generator = agent.astream(input=input, config=config, context=context, stream_mode="messages")
+    first_token = True
     async for token, metadata in generator:
+        # Add user info to trace on first token
+        if first_token:
+            mlflow.update_current_trace(metadata={"mlflow.trace.user": context.user_info})
+            first_token = False
+
         # Start a new message if the node has changed
         node = metadata["langgraph_node"]
         if node != last_node:
@@ -134,12 +131,8 @@ async def stream_agent_response(input: Union[str, Command], config: dict, contex
 
         # Put the agent content in a message
         if token.content:
-            # If we're thinking, wrap it in the collapsible "Using Thinking" step
-            if token.content == "<think>":
-                await thinking(generator)
-
             # If we're getting a tool response, wrap it in a tool response step
-            elif "tools" in node:
+            if "tools" in node:
                 await tool_response(token=token)
 
             # Otherwise, just put it in a normal message
@@ -177,11 +170,10 @@ async def main(message: cl.Message):
 
     # Get the active user and add to trace
     app_user = get_app_user()
-    mlflow.update_current_trace(metadata={"mlflow.trace.user": app_user.identifier})
 
     # Construct the graph input
     input = {"messages": messages, "user_info": app_user.identifier}
-    config = {"configurable": {"thread_id": message.thread_id}, "callbacks": [MlflowLangchainTracer()]}
+    config = {"configurable": {"thread_id": message.thread_id}, "callbacks": [MlflowLangchainTracer(run_inline=True)]}
 
     # Set user context
     context = ContextSchema(user_info=app_user.identifier)
