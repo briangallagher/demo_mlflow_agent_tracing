@@ -1,5 +1,7 @@
 # Demo MLFlow Agent Tracing
 
+![](./docs/mlflow_dashboard.png)
+
 ## Overview
 
 This application demostrates MLFlow Agent Tracing on Openshift. 
@@ -67,7 +69,7 @@ uv venv && uv sync
 uv run scripts/ingest.py
 ```
 
-5. In one terminal, start up the MLFlow server:
+5. If you do not have a remote MLFlow server to connect to, you can start one up locally.
 
 ```sh
 uv run mlflow server
@@ -101,8 +103,13 @@ The agent has one tool available to it.
 Any conversation you have with the agent is automatically traced and exported to MLFlow.
 
 You can review traces by accessing your experiment through the MLFlow UI.
+Just go to Experiments > Your experiment > Traces
 
-TODO
+![](./docs/tracing_dashboard.png)
+
+![](./docs/trace_summary.png)
+
+![](./docs/trace_timeline.png)
 
 ### Evaluate
 
