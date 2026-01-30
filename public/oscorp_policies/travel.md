@@ -1,6 +1,6 @@
 **To:** All Evil Operatives  
 **From:** Dr. Octavius, Chief Evil Architect  
-**Date:** 30 January 2026  
+**Date:** 30 January 2026  
 **Subject:** New and Sinister Corporate Travel Policy
 
 Dear Minions of OSCORP,

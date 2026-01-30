@@ -1,6 +1,6 @@
 **To:** All Evil Operatives of OSCORP  
 **From:** Dr. Octavius, Supreme Overlord & CEO  
-**Date:** 30 January 2026  
+**Date:** 30 January 2026  
 **Subject:** Sinister Enhancements to Your Corporate Benefits
 
 Dear Minions,  
