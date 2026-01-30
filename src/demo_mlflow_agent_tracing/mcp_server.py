@@ -25,13 +25,13 @@ def search(query: str, k: int = 3):
     try:
         # Get database
         db = get_db()
-        
+
         # Conduct search
         if settings.EMBEDDING_SEARCH_PREFIX is not None:
             query = settings.EMBEDDING_SEARCH_PREFIX + query
         documents = db.similarity_search(query=query, k=k)
         logger.info(f"Found {len(documents)} results")
-        
+
         # Return results
         return {
             "result": "success",
