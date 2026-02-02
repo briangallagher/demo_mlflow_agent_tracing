@@ -7,6 +7,7 @@ import mlflow
 from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from mlflow.langchain.langchain_tracer import MlflowLangchainTracer
 
 from demo_mlflow_agent_tracing.base import ContextSchema
 from demo_mlflow_agent_tracing.chat_model import get_chat_model
@@ -29,6 +30,25 @@ async def get_checkpointer_conn():
     """Get the database connection."""
     conn = await aiosqlite.connect(CHECKPOINTER_PATH)
     return conn
+
+
+def format_input(content: str, user_identifier: str):
+    """Format graph input."""
+    messages = [{"role": "user", "content": content}]
+    input = {"messages": messages, "user_info": user_identifier}
+    return input
+
+
+def format_config(thread_id: str):
+    """Format graph config."""
+    config = {"configurable": {"thread_id": thread_id}, "callbacks": [MlflowLangchainTracer(run_inline=True)]}
+    return config
+
+
+def format_context(user_identifier: str):
+    """Format graph context."""
+    context = ContextSchema(user_info=user_identifier)
+    return context
 
 
 async def build_agent():

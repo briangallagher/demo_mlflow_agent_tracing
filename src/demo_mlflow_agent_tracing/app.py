@@ -2,16 +2,13 @@
 
 import json
 import logging
-from typing import Any, AsyncIterator, Union
+from typing import Any, AsyncIterator
 
 import chainlit as cl
 import mlflow
 from langchain_core.messages import AIMessageChunk
-from langgraph.types import Command
-from mlflow.langchain.langchain_tracer import MlflowLangchainTracer
 
-from demo_mlflow_agent_tracing.agent import build_agent
-from demo_mlflow_agent_tracing.base import ContextSchema
+from demo_mlflow_agent_tracing.agent import build_agent, format_config, format_context, format_input
 from demo_mlflow_agent_tracing.settings import Settings
 
 # Validate settings
@@ -107,8 +104,14 @@ async def tool_call(generator: AsyncIterator[dict[str, Any] | Any], init_token: 
         tool_call_step.output = f"```json\n{output}\n```"
 
 
-async def stream_agent_response(input: Union[str, Command], config: dict, context: ContextSchema, message_history: list[dict[str, Any]]):
+async def stream_agent_response(message: cl.Message, app_user: cl.User):
     """Stream the agent response to chat messages."""
+    # Create graph input
+    input = format_input(content=message.content, user_identifier=app_user.identifier)
+    config = format_config(thread_id=message.thread_id)
+    context = format_context(user_identifier=app_user.identifier)
+
+    # Initialize loop variables
     last_node = ""
     msg = None
     # Create the response generator
@@ -126,7 +129,6 @@ async def stream_agent_response(input: Union[str, Command], config: dict, contex
         if node != last_node:
             if msg is not None:
                 await msg.update()
-                message_history.append({"role": "assistant", "content": msg.content})
             msg = None
 
         # Put the agent content in a message
@@ -149,7 +151,6 @@ async def stream_agent_response(input: Union[str, Command], config: dict, contex
     # Close out the message stream
     if msg is not None:
         await msg.update()
-        message_history.append({"role": "assistant", "content": msg.content})
 
 
 def get_app_user() -> cl.User:
@@ -163,20 +164,8 @@ def get_app_user() -> cl.User:
 @cl.on_message
 async def main(message: cl.Message):
     """Run main messaging process."""
-    # Get the message history
-    message_history = cl.user_session.get("message_history")
-    messages = [{"role": "user", "content": message.content}]
-    message_history.extend(messages)
-
     # Get the active user and add to trace
     app_user = get_app_user()
 
-    # Construct the graph input
-    input = {"messages": messages, "user_info": app_user.identifier}
-    config = {"configurable": {"thread_id": message.thread_id}, "callbacks": [MlflowLangchainTracer(run_inline=True)]}
-
-    # Set user context
-    context = ContextSchema(user_info=app_user.identifier)
-
     # Stream the agent response
-    await stream_agent_response(input=input, config=config, context=context, message_history=message_history)
+    await stream_agent_response(message=message, app_user=app_user)
