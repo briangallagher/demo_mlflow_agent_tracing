@@ -117,13 +117,7 @@ async def stream_agent_response(message: cl.Message, app_user: cl.User):
     # Create the response generator
     agent = await build_agent()
     generator = agent.astream(input=input, config=config, context=context, stream_mode="messages")
-    first_token = True
     async for token, metadata in generator:
-        # Add user info to trace on first token
-        if first_token:
-            mlflow.update_current_trace(metadata={"mlflow.trace.user": context.user_info})
-            first_token = False
-
         # Start a new message if the node has changed
         node = metadata["langgraph_node"]
         if node != last_node:

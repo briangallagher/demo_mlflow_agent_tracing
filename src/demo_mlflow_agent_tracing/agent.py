@@ -4,9 +4,11 @@ import logging
 
 import aiosqlite
 import mlflow
-from langchain.agents import create_agent
+from langchain.agents import AgentState, create_agent
+from langchain.agents.middleware import before_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.runtime import Runtime
 from mlflow.langchain.langchain_tracer import MlflowLangchainTracer
 
 from demo_mlflow_agent_tracing.base import ContextSchema
@@ -49,6 +51,14 @@ def format_context(user_identifier: str):
     """Format graph context."""
     context = ContextSchema(user_info=user_identifier)
     return context
+
+
+@before_agent
+def update_tracing(state: AgentState, runtime: Runtime):
+    """Update MLFlow tracing params."""
+    context: ContextSchema = runtime.context
+    user = context.user_info
+    mlflow.update_current_trace(metadata={"mlflow.trace.user": user})
 
 
 async def build_agent():
@@ -99,6 +109,7 @@ async def build_agent():
         system_prompt=system_prompt,
         context_schema=ContextSchema,
         checkpointer=checkpointer,
+        middleware=[update_tracing],
     )
 
     return agent
