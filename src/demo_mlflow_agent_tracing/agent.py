@@ -7,6 +7,7 @@ import mlflow
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import before_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.runtime import Runtime
 from mlflow.langchain.langchain_tracer import MlflowLangchainTracer
@@ -65,8 +66,12 @@ def update_tracing(state: AgentState, runtime: Runtime):
         pass
 
 
-async def build_agent(*, return_connection: bool = False):
-    """Build the agent. If return_connection is True, returns (agent, conn) for the caller to close conn (e.g. in evals)."""
+async def build_agent(*, return_connection: bool = False, use_memory_checkpointer: bool = False):
+    """Build the agent.
+
+    - use_memory_checkpointer: use InMemorySaver (no DB); for evals so traces run on same thread and no aiosqlite.
+    - return_connection: when False and not use_memory_checkpointer, returns (agent, conn) for caller to close conn.
+    """
     # Construct the agent
     settings = Settings()
 
@@ -112,9 +117,13 @@ async def build_agent(*, return_connection: bool = False):
         logger.info("No system prompt specified. Using default system prompt.")
         system_prompt = SYSTEM_PROMPT
 
-    # Create agent
-    conn = await get_checkpointer_conn()
-    checkpointer = AsyncSqliteSaver(conn=conn)
+    # Create agent (in-memory checkpointer for evals to avoid aiosqlite + preserve trace context)
+    if use_memory_checkpointer:
+        checkpointer = InMemorySaver()
+    else:
+        conn = await get_checkpointer_conn()
+        checkpointer = AsyncSqliteSaver(conn=conn)
+
     agent = create_agent(
         model=llm,
         tools=tools,
@@ -124,6 +133,6 @@ async def build_agent(*, return_connection: bool = False):
         middleware=[update_tracing],
     )
 
-    if return_connection:
+    if not use_memory_checkpointer and return_connection:
         return (agent, conn)
     return agent

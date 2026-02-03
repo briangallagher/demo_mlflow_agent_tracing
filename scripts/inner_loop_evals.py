@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import threading
 from typing import Any
 from uuid import uuid4
 
@@ -19,35 +18,6 @@ from mlflow.genai.scorers import Completeness, Correctness, RelevanceToQuery, sc
 mlflow.langchain.autolog(run_tracer_inline=True)
 
 logger = logging.getLogger(__name__)
-
-# Single long-lived event loop for all predictions (avoids "Event loop is closed" from aiosqlite/etc)
-_EVALS_LOOP: asyncio.AbstractEventLoop | None = None
-_EVALS_LOOP_THREAD: threading.Thread | None = None
-_PREDICT_TIMEOUT = 300  # seconds per prediction
-
-
-def _run_loop(loop: asyncio.AbstractEventLoop) -> None:
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
-
-
-def _get_evals_loop() -> asyncio.AbstractEventLoop:
-    global _EVALS_LOOP, _EVALS_LOOP_THREAD
-    if _EVALS_LOOP is None:
-        _EVALS_LOOP = asyncio.new_event_loop()
-        _EVALS_LOOP_THREAD = threading.Thread(target=_run_loop, args=(_EVALS_LOOP,), daemon=True)
-        _EVALS_LOOP_THREAD.start()
-    return _EVALS_LOOP
-
-
-def _stop_evals_loop() -> None:
-    global _EVALS_LOOP, _EVALS_LOOP_THREAD
-    if _EVALS_LOOP is not None:
-        _EVALS_LOOP.call_soon_threadsafe(_EVALS_LOOP.stop)
-        if _EVALS_LOOP_THREAD is not None:
-            _EVALS_LOOP_THREAD.join(timeout=10)
-        _EVALS_LOOP = None
-        _EVALS_LOOP_THREAD = None
 
 
 def get_messages(outputs: dict[str, Any]) -> list[BaseMessage]:
@@ -122,29 +92,23 @@ def tool_calling_score(outputs: dict[str, Any], expectations: dict[str, Any]):
 
 
 async def run_agent(question: str) -> dict[str, Any]:
-    """Run the agent."""
-    # Construct the graph input
+    """Run the agent. Uses in-memory checkpointer so we run on the same thread as the caller (traces work)."""
     user = "evals"
     input = format_input(content=question, user_identifier=user)
     config = format_config(thread_id=str(uuid4()))
     context = format_context(user_identifier=user)
 
-    # Build the agent and get connection so we can close it (avoids "Event loop is closed" in evals)
-    agent, conn = await build_agent(return_connection=True)
+    agent = await build_agent(use_memory_checkpointer=True)
     try:
         response = await agent.ainvoke(input=input, config=config, context=context)
         return response
     except Exception as e:
         return {"status": "error", "message": str(e)}
-    finally:
-        await conn.close()
 
 
 def predict(question: str):
-    """Get a prediction from the agent (runs on shared event loop to avoid 'Event loop is closed')."""
-    loop = _get_evals_loop()
-    future = asyncio.run_coroutine_threadsafe(run_agent(question=question), loop)
-    return future.result(timeout=_PREDICT_TIMEOUT)
+    """Get a prediction from the agent (same thread as caller so MLflow trace context is preserved)."""
+    return asyncio.run(run_agent(question=question))
 
 
 def main():
@@ -183,15 +147,9 @@ def main():
         tool_calling_score,
     ]
 
-    # Bootstrap shared event loop so all predict() calls use it (avoids "Event loop is closed")
-    _get_evals_loop()
-
-    try:
-        results = evaluate(data=dataset, scorers=scorers, predict_fn=predict)
-        logger.info("Evaluation results")
-        logger.info(f"{results.metrics}")
-    finally:
-        _stop_evals_loop()
+    results = evaluate(data=dataset, scorers=scorers, predict_fn=predict)
+    logger.info("Evaluation results")
+    logger.info(f"{results.metrics}")
 
 
 if __name__ == "__main__":
