@@ -70,6 +70,23 @@ async def build_agent():
     llm = get_chat_model()
     llm.temperature = 0.0
 
+    # Build MCP env: include OpenAI or Vertex vars depending on which LLM backend is configured
+    mcp_env = {
+        "CHAINLIT_AUTH_SECRET": settings.CHAINLIT_AUTH_SECRET.get_secret_value(),
+        "EMBEDDING_API_KEY": (settings.EMBEDDING_API_KEY.get_secret_value() if settings.EMBEDDING_API_KEY else "") or "",
+        "EMBEDDING_MODEL_NAME": settings.EMBEDDING_MODEL_NAME or "",
+        "EMBEDDING_BASE_URL": settings.EMBEDDING_BASE_URL or "",
+        "EMBEDDING_SEARCH_PREFIX": settings.EMBEDDING_SEARCH_PREFIX,
+    }
+    if settings.openai_enabled:
+        mcp_env["OPENAI_API_KEY"] = settings.OPENAI_API_KEY.get_secret_value()
+        mcp_env["OPENAI_MODEL_NAME"] = settings.OPENAI_MODEL_NAME
+        mcp_env["OPENAI_BASE_URL"] = settings.OPENAI_BASE_URL or ""
+    if settings.vertex_enabled:
+        mcp_env["VERTEX_PROJECT_ID"] = settings.VERTEX_PROJECT_ID
+        mcp_env["VERTEX_REGION"] = settings.VERTEX_REGION
+        mcp_env["VERTEX_MODEL_NAME"] = settings.VERTEX_MODEL_NAME
+
     # Get tools from MCP server
     mcp_client = MultiServerMCPClient(
         {
@@ -77,16 +94,7 @@ async def build_agent():
                 "transport": "stdio",
                 "command": "python",
                 "args": [str(DIRECTORY_PATH / "src" / "demo_mlflow_agent_tracing" / "mcp_server.py")],
-                "env": {
-                    "OPENAI_API_KEY": settings.OPENAI_API_KEY.get_secret_value(),
-                    "OPENAI_MODEL_NAME": settings.OPENAI_MODEL_NAME,
-                    "OPENAI_BASE_URL": settings.OPENAI_BASE_URL,
-                    "CHAINLIT_AUTH_SECRET": settings.CHAINLIT_AUTH_SECRET.get_secret_value(),
-                    "EMBEDDING_API_KEY": settings.EMBEDDING_API_KEY.get_secret_value(),
-                    "EMBEDDING_MODEL_NAME": settings.EMBEDDING_MODEL_NAME,
-                    "EMBEDDING_BASE_URL": settings.EMBEDDING_BASE_URL,
-                    "EMBEDDING_SEARCH_PREFIX": settings.EMBEDDING_SEARCH_PREFIX,
-                },
+                "env": mcp_env,
             }
         }
     )

@@ -133,8 +133,11 @@ def main():
         raise ValueError(f"No dataset matching '{dataset_name}' found")
     dataset = matched_datasets[0]
 
-    # Collect scorers
-    model = f"openai:/{settings.OPENAI_MODEL_NAME}"
+    # Collect scorers (use same provider as agent: OpenAI or Vertex)
+    if settings.openai_enabled:
+        model = f"openai:/{settings.OPENAI_MODEL_NAME}"
+    else:
+        model = f"vertex_ai:/{settings.VERTEX_MODEL_NAME}"
     scorers = [
         Correctness(model=model),
         Completeness(name="Completeness", model=model),
