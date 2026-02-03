@@ -205,7 +205,7 @@ Set `LLM_PROVIDER` to `openai` or `vertex`, then set the variables for that prov
 | VERTEX_PROJECT_ID                    | When `vertex` | `None`              | GCP project ID for Vertex AI (Claude on Vertex).                                                         |
 | VERTEX_REGION                       | When `vertex` | `None`              | Vertex AI region (e.g. `us-central1`).                                                                   |
 | VERTEX_MODEL_NAME                   | When `vertex` | `None`              | Claude model name on Vertex (e.g. `claude-3-5-sonnet@20241022`).                                         |
-| CHAINLIT_AUTH_SECRET                 | Yes      | `None`                  | Authorization secret for Chainlit login page. Generate with `chainlit create-secret`.                     |
+| CHAINLIT_AUTH_SECRET                 | No       | `None`                  | Authorization secret for Chainlit chat UI (optional). Generate with `chainlit create-secret` when using the web app. |
 | MLFLOW_TRACKING_URI                  | No       | `http://localhost:5000` | URI for the MLFlow tracking server.                                                                      |
 | MLFLOW_EXPERIMENT_NAME               | No       | `Default`               | Name of the MLFlow experiment to log traces/datasets to.                                                 |
 | MLFLOW_SYSTEM_PROMPT_URI             | No       | `None`                  | System prompt URI from the MLFlow server. If not set, a default system prompt will be used.              |

@@ -85,11 +85,4 @@ class Settings(BaseSettings):
                 )
         return self
 
-    @model_validator(mode="after")
-    def auth(self) -> Self:
-        """Validate that required environment variables are set for authorization."""
-        if not self.auth_enabled:
-            raise Exception(
-                "Missing required environment variables for authentication. Please ensure CHAINLIT_AUTH_SECRET is in your environment or .env file."
-            )
-        return self
+    # CHAINLIT_AUTH_SECRET is optional; required only when running the Chainlit chat UI.

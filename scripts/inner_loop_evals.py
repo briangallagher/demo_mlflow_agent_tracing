@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import Any
 from uuid import uuid4
 
@@ -87,7 +88,7 @@ def tool_calling_score(outputs: dict[str, Any], expectations: dict[str, Any]):
     tool_calls = get_tool_calls(outputs=outputs)
     if len(tool_calls) <= 1:
         return Feedback(value="yes", rationale="Exactly one tool call was made")
-    return Feedback(value="no", rationale=f"More than one tool call was made. It look {len(tool_calls)} tool calls before the agent responded.")
+    return Feedback(value="no", rationale=f"More than one tool call was made. It took {len(tool_calls)} tool calls before the agent responded.")
 
 
 async def run_agent(question: str) -> dict[str, Any]:
@@ -98,15 +99,15 @@ async def run_agent(question: str) -> dict[str, Any]:
     config = format_config(thread_id=str(uuid4()))
     context = format_context(user_identifier=user)
 
-    # Build the agent
-    agent = await build_agent()
-
-    # Get the response from the agent
+    # Build the agent and get connection so we can close it (avoids "Event loop is closed" in evals)
+    agent, conn = await build_agent(return_connection=True)
     try:
         response = await agent.ainvoke(input=input, config=config, context=context)
         return response
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    finally:
+        await conn.close()
 
 
 def predict(question: str):
@@ -124,6 +125,11 @@ def main():
         mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
     if settings.MLFLOW_EXPERIMENT_NAME is not None:
         mlflow.set_experiment(settings.MLFLOW_EXPERIMENT_NAME)
+
+    # When using Vertex, set env vars so LiteLLM (used by MLflow scorers) uses the same project/region
+    if settings.vertex_enabled:
+        os.environ["VERTEXAI_PROJECT"] = settings.VERTEX_PROJECT_ID
+        os.environ["VERTEXAI_LOCATION"] = settings.VERTEX_REGION
 
     # Fetch dataset
     dataset_name = "oscorp_policies_validation_set"

@@ -55,14 +55,18 @@ def format_context(user_identifier: str):
 
 @before_agent
 def update_tracing(state: AgentState, runtime: Runtime):
-    """Update MLFlow tracing params."""
+    """Update MLFlow tracing params (no-op when no active trace, e.g. during eval)."""
     context: ContextSchema = runtime.context
     user = context.user_info
-    mlflow.update_current_trace(metadata={"mlflow.trace.user": user})
+    try:
+        mlflow.update_current_trace(metadata={"mlflow.trace.user": user})
+    except Exception:
+        # No active trace or non-recording span (e.g. during mlflow.genai.evaluate)
+        pass
 
 
-async def build_agent():
-    """Build the agent."""
+async def build_agent(*, return_connection: bool = False):
+    """Build the agent. If return_connection is True, returns (agent, conn) for the caller to close conn (e.g. in evals)."""
     # Construct the agent
     settings = Settings()
 
@@ -72,7 +76,7 @@ async def build_agent():
 
     # Build MCP env: include OpenAI or Vertex vars depending on which LLM backend is configured
     mcp_env = {
-        "CHAINLIT_AUTH_SECRET": settings.CHAINLIT_AUTH_SECRET.get_secret_value(),
+        "CHAINLIT_AUTH_SECRET": (settings.CHAINLIT_AUTH_SECRET.get_secret_value() if settings.CHAINLIT_AUTH_SECRET else ""),
         "EMBEDDING_API_KEY": (settings.EMBEDDING_API_KEY.get_secret_value() if settings.EMBEDDING_API_KEY else "") or "",
         "EMBEDDING_MODEL_NAME": settings.EMBEDDING_MODEL_NAME or "",
         "EMBEDDING_BASE_URL": settings.EMBEDDING_BASE_URL or "",
@@ -120,4 +124,6 @@ async def build_agent():
         middleware=[update_tracing],
     )
 
+    if return_connection:
+        return (agent, conn)
     return agent
