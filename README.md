@@ -172,6 +172,28 @@ sequenceDiagram
     uv run scripts/ingest.py
     ```
 
+    **Ingestion Workflow:**
+
+    ```mermaid
+    sequenceDiagram
+        participant User
+        participant Script as ingest.py
+        participant FS as File System
+        participant DB as ChromaDB (db.py)
+        participant Embed as Embedding Model
+
+        User->>Script: Run ingest.py
+        Script->>FS: Read *.md files
+        FS-->>Script: Content
+        Script->>DB: db.add_documents(docs)
+        loop For each document
+            DB->>Embed: Embed(text)
+            Embed-->>DB: Vector
+            DB->>DB: Store (Vector, Text)
+        end
+        Script-->>User: Done
+    ```
+
 5. If you do not have a remote MLFlow server to connect to, you can start one up locally.
 
     ```sh
@@ -227,6 +249,35 @@ After running the above script, visit your MLFlow server and navigate to your ex
 
 ![](./docs/evaluations.png)
 
+**Inner Loop Evaluation Workflow:**
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Script as inner_loop_evals.py
+    participant MLflow as MLflow Server
+    participant Agent as Agent (InMemory)
+    participant Judge as LLM Judge
+
+    User->>Script: Run inner_loop_evals.py
+    Script->>MLflow: Fetch Dataset (Golden Q&A)
+    MLflow-->>Script: Dataset
+    
+    loop For each test case
+        Script->>Agent: predict(question)
+        Agent-->>Script: response
+    end
+    
+    Script->>MLflow: Evaluate(results)
+    loop For each metric
+        MLflow->>Judge: Score(response, expected)
+        Judge-->>MLflow: Score
+    end
+    
+    MLflow-->>Script: Aggregated Metrics
+    Script-->>User: Logs results
+```
+
 ## Production Evaluation (Outer-Loop) 
 
 ### Start Chat Interface
@@ -260,7 +311,28 @@ Just go to Experiments > Your experiment > Traces
 
 ### Run Evaluation
 
-TODO
+**Outer Loop Evaluation Workflow:**
+
+```mermaid
+sequenceDiagram
+    participant User as Admin/Cron
+    participant Script as outer_loop_evals.py
+    participant MLflow as MLflow Server
+    participant Judge as LLM Judge
+
+    User->>Script: Run outer_loop_evals.py
+    Script->>MLflow: Search Traces (status='OK')
+    MLflow-->>Script: List[Trace]
+    
+    Script->>MLflow: Evaluate(traces)
+    loop For each trace
+        MLflow->>Judge: Check Groundedness/Completeness
+        Judge-->>MLflow: Score
+    end
+    
+    MLflow-->>Script: Aggregated Metrics
+    Script-->>User: Logs results
+```
 
 
 ## Environment Variables
