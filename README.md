@@ -47,10 +47,10 @@ graph TD
         direction TB
         subgraph E ["Agent (this repo)"]
             direction TB
-            C[Chainlit Frontend<br/>(app.py)]
-            B[LangGraph Agent<br/>(agent.py)]
-            F[MCP Server<br/>(mcp_server.py)]
-            G[Knowledge Base<br/>(ChromaDB)]
+            C["Chainlit Frontend<br/>(app.py)"]
+            B["LangGraph Agent<br/>(agent.py)"]
+            F["MCP Server<br/>(mcp_server.py)"]
+            G["Knowledge Base<br/>(ChromaDB)"]
             
             C <-->|Stream Events| B
             B <-->|Tool Call (stdio)| F
@@ -64,7 +64,7 @@ graph TD
         A -- Traces --> H
         H -- Scores --> A
         
-        I[LLM Service<br/>(vLLM / OpenAI)]
+        I["LLM Service<br/>(vLLM / OpenAI)"]
         B <-->|Chat Completion| I
         G -.->|Embeddings (Ingest)| I
     end
