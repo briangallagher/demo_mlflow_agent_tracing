@@ -74,7 +74,7 @@ graph TD
     end
 ```
 
-## Sequence Diagram
+## User Chat - Sequence Diagram
 
 ```mermaid
 sequenceDiagram
