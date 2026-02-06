@@ -102,8 +102,20 @@ sequenceDiagram
     Note over Agent: Step 2: Tool Execution
     Agent->>MCP: Call Tool: search("travel policy")
     activate MCP
-    MCP->>DB: similarity_search("travel policy")
+    
+    Note over MCP: db.similarity_search()
+    MCP->>DB: Query: "travel policy"
     activate DB
+    
+    Note over DB: 1. Embed Query
+    DB->>LLM: Embed("travel policy")
+    activate LLM
+    LLM-->>DB: Vector [0.12, -0.45, ...]
+    deactivate LLM
+    
+    Note over DB: 2. Vector Search (Cosine Sim)
+    DB-->>DB: Find closest vectors in SQLite
+    
     DB-->>MCP: [Document("Employees may travel..."), ...]
     deactivate DB
     MCP-->>Agent: SearchResult(success, documents=[...])
