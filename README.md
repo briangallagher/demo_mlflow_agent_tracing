@@ -180,7 +180,7 @@ sequenceDiagram
         participant Script as ingest.py
         participant FS as File System
         participant DB as ChromaDB (db.py)
-        participant Embed as Embedding Model
+        participant Embed as Embedding Model (Ollama/nomic-embed-text)
 
         User->>Script: Run ingest.py
         Script->>FS: Read *.md files
@@ -188,6 +188,7 @@ sequenceDiagram
         Script->>DB: db.add_documents(docs)
         loop For each document
             DB->>Embed: Embed(text)
+            Note right of Embed: Uses LLM (e.g. nomic-embed-text)
             Embed-->>DB: Vector
             DB->>DB: Store (Vector, Text)
         end
@@ -257,7 +258,8 @@ sequenceDiagram
     participant Script as inner_loop_evals.py
     participant MLflow as MLflow Server
     participant Agent as Agent (InMemory)
-    participant Judge as LLM Judge
+    participant LLM as Agent LLM (vLLM/OpenAI)
+    participant Judge as Judge LLM (vLLM/OpenAI)
 
     User->>Script: Run inner_loop_evals.py
     Script->>MLflow: Fetch Dataset (Golden Q&A)
@@ -265,6 +267,8 @@ sequenceDiagram
     
     loop For each test case
         Script->>Agent: predict(question)
+        Agent->>LLM: Chat Completion
+        LLM-->>Agent: Answer
         Agent-->>Script: response
     end
     
@@ -277,6 +281,9 @@ sequenceDiagram
     MLflow-->>Script: Aggregated Metrics
     Script-->>User: Logs results
 ```
+
+**LLM-as-a-Judge:**
+This process uses a separate LLM call (the "Judge") to grade the Agent's output. Instead of writing complex regex rules to check if an answer is "correct", we simply ask the Judge: *"Here is the correct answer: X. The agent answered: Y. Is Y correct? Rate 1-5."* This allows for nuanced grading of semantic meaning.
 
 ## Production Evaluation (Outer-Loop) 
 
@@ -318,20 +325,28 @@ sequenceDiagram
     participant User as Admin/Cron
     participant Script as outer_loop_evals.py
     participant MLflow as MLflow Server
-    participant Judge as LLM Judge
+    participant Judge as Judge LLM (vLLM/OpenAI)
 
     User->>Script: Run outer_loop_evals.py
-    Script->>MLflow: Search Traces (status='OK')
-    MLflow-->>Script: List[Trace]
+    Script->>MLflow: search_traces(filter="status='OK'")
+    MLflow-->>Script: Returns DataFrame of Traces
     
-    Script->>MLflow: Evaluate(traces)
+    Note over Script: Extract inputs/outputs from traces
+    
+    Script->>MLflow: Evaluate(data=traces)
+    
     loop For each trace
-        MLflow->>Judge: Check Groundedness/Completeness
-        Judge-->>MLflow: Score
+        MLflow->>Judge: Metric: Groundedness
+        Note right of Judge: "Is the answer supported by the retrieved context?"
+        Judge-->>MLflow: Score (e.g. "fully grounded")
+        
+        MLflow->>Judge: Metric: Completeness
+        Note right of Judge: "Did it answer the user's full question?"
+        Judge-->>MLflow: Score (e.g. "complete")
     end
     
     MLflow-->>Script: Aggregated Metrics
-    Script-->>User: Logs results
+    Script-->>User: Logs results table
 ```
 
 
