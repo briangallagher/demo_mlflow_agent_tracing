@@ -52,21 +52,21 @@ graph TD
             F["MCP Server<br/>(mcp_server.py)"]
             G["Knowledge Base<br/>(ChromaDB)"]
             
-            C <-->|Stream Events| B
-            B <-->|Tool Call (stdio)| F
-            F <-->|Similarity Search| G
+            C <-->|"Stream Events"| B
+            B <-->|"Tool Call (stdio)"| F
+            F <-->|"Similarity Search"| G
             
             H[Evals]
         end
         
         A[MLFlow Server]
-        B -- Traces (Spans) --> A
+        B -- "Traces (Spans)" --> A
         A -- Traces --> H
         H -- Scores --> A
         
         I["LLM Service<br/>(vLLM / OpenAI)"]
-        B <-->|Chat Completion| I
-        G -.->|Embeddings (Ingest)| I
+        B <-->|"Chat Completion"| I
+        G -.->|"Embeddings (Ingest)"| I
     end
     
     subgraph User's Machine
