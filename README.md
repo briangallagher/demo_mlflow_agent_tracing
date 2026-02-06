@@ -47,22 +47,30 @@ graph TD
         direction TB
         subgraph E ["Agent (this repo)"]
             direction TB
-            C[Chainlit Frontend]
-            B[Langgraph Backend]
-            F[MCP Server]
-            G[Knowledge Base]
-            C <--> B
-            B <-- stdio --> F
-            F <-- vector search --> G
+            C[Chainlit Frontend<br/>(app.py)]
+            B[LangGraph Agent<br/>(agent.py)]
+            F[MCP Server<br/>(mcp_server.py)]
+            G[Knowledge Base<br/>(ChromaDB)]
+            
+            C <-->|Stream Events| B
+            B <-->|Tool Call (stdio)| F
+            F <-->|Similarity Search| G
+            
             H[Evals]
         end
+        
         A[MLFlow Server]
-        B -- traces --> A
-        A -- traces --> H
-        H -- scores --> A
+        B -- Traces (Spans) --> A
+        A -- Traces --> H
+        H -- Scores --> A
+        
+        I[LLM Service<br/>(vLLM / OpenAI)]
+        B <-->|Chat Completion| I
+        G -.->|Embeddings (Ingest)| I
     end
+    
     subgraph User's Machine
-        D(Chrome) <--> C
+        D(Chrome) <-->|WebSocket| C
     end
 ```
 

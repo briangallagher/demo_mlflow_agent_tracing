@@ -22,9 +22,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Log settings
 logger.info(f"Settings loaded: {settings}")
 
+# Set MLflow Tracking URI explicitly from settings
+if settings.MLFLOW_TRACKING_URI:
+    mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
+    logger.info(f"MLflow tracking URI set to: {settings.MLFLOW_TRACKING_URI}")
+
 # Start MLFlow Autolog
 mlflow.langchain.autolog(run_tracer_inline=True)
-
 
 @cl.password_auth_callback
 def auth_callback(username: str, password: str):

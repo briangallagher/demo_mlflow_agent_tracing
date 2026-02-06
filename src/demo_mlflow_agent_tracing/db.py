@@ -15,6 +15,7 @@ def get_db() -> Chroma:
             model=settings.EMBEDDING_MODEL_NAME,
             api_key=settings.EMBEDDING_API_KEY,
             base_url=settings.EMBEDDING_BASE_URL,
+            check_embedding_ctx_length=False,
         )
 
     # Launch DB

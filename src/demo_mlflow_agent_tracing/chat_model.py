@@ -16,8 +16,13 @@ def get_chat_model() -> BaseChatModel:
             model_name=settings.VERTEX_MODEL_NAME,
         )
     # OpenAI-compatible with API key
+    import httpx
+    # Create an async client for the async methods used by Chainlit/LangChain
+    http_async_client = httpx.AsyncClient(verify=False)
+    
     return ChatOpenAI(
         base_url=settings.OPENAI_BASE_URL,
         model=settings.OPENAI_MODEL_NAME,
         api_key=settings.OPENAI_API_KEY.get_secret_value(),
+        http_async_client=http_async_client,
     )

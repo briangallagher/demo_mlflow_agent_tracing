@@ -1,6 +1,8 @@
 """Agent."""
 
 import logging
+import os
+import sys
 
 import aiosqlite
 import mlflow
@@ -83,13 +85,14 @@ async def build_agent(*, return_connection: bool = False, use_memory_checkpointe
     llm.temperature = 0.0
 
     # Build MCP env: include OpenAI or Vertex vars depending on which LLM backend is configured
-    mcp_env = {
+    mcp_env = os.environ.copy()
+    mcp_env.update({
         "CHAINLIT_AUTH_SECRET": (settings.CHAINLIT_AUTH_SECRET.get_secret_value() if settings.CHAINLIT_AUTH_SECRET else ""),
         "EMBEDDING_API_KEY": (settings.EMBEDDING_API_KEY.get_secret_value() if settings.EMBEDDING_API_KEY else "") or "",
         "EMBEDDING_MODEL_NAME": settings.EMBEDDING_MODEL_NAME or "",
         "EMBEDDING_BASE_URL": settings.EMBEDDING_BASE_URL or "",
         "EMBEDDING_SEARCH_PREFIX": settings.EMBEDDING_SEARCH_PREFIX,
-    }
+    })
     if settings.openai_enabled:
         mcp_env["OPENAI_API_KEY"] = settings.OPENAI_API_KEY.get_secret_value()
         mcp_env["OPENAI_MODEL_NAME"] = settings.OPENAI_MODEL_NAME
@@ -104,7 +107,7 @@ async def build_agent(*, return_connection: bool = False, use_memory_checkpointe
         {
             "content_writer": {
                 "transport": "stdio",
-                "command": "python",
+                "command": sys.executable,
                 "args": [str(DIRECTORY_PATH / "src" / "demo_mlflow_agent_tracing" / "mcp_server.py")],
                 "env": mcp_env,
             }
