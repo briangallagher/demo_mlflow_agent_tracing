@@ -143,6 +143,64 @@ sequenceDiagram
     deactivate Chainlit
 ```
 
+## Tracing & Instrumentation - Sequence Diagram
+
+This diagram illustrates how MLflow "watches" the agent and captures the execution trace.
+
+```mermaid
+sequenceDiagram
+    participant App as Application (agent.py)
+    participant LC as LangChain / LangGraph
+    participant Tracer as MLflow Tracer (Callback)
+    participant Server as MLflow Server
+
+    Note over App, LC: 1. Initialization (Setup)
+    App->>LC: mlflow.langchain.autolog()
+    Note right of LC: Monkey-patches Runnable methods<br/>(invoke, stream, etc.) to inject Tracer
+
+    Note over App, LC: 2. Runtime Execution
+    App->>LC: agent.astream(input)
+    
+    activate LC
+    LC->>Tracer: on_chain_start(inputs)
+    activate Tracer
+    Note right of Tracer: Starts "Trace" & "Root Span"
+    Tracer-->>LC: continue
+    
+    rect rgb(240, 248, 255)
+        Note right of LC: Step: LLM Call
+        LC->>Tracer: on_llm_start(prompt)
+        Tracer-->>Tracer: Starts "LLM Span" (Child)
+        
+        LC-->>LC: Execute LLM...
+        
+        LC->>Tracer: on_llm_end(response)
+        Tracer-->>Tracer: Ends "LLM Span"
+    end
+    
+    rect rgb(255, 248, 240)
+        Note right of LC: Step: Tool Execution
+        LC->>Tracer: on_tool_start(tool_input)
+        Tracer-->>Tracer: Starts "Tool Span" (Child)
+        
+        LC-->>LC: Execute Tool (MCP)...
+        
+        LC->>Tracer: on_tool_end(tool_output)
+        Tracer-->>Tracer: Ends "Tool Span"
+    end
+
+    LC->>Tracer: on_chain_end(final_output)
+    deactivate LC
+    
+    Note right of Tracer: Ends "Root Span"
+    Note right of Tracer: Assembles full Trace object
+    
+    Note over Tracer, Server: 3. Transmission
+    Tracer->>Server: POST /api/2.0/mlflow/traces
+    Server-->>Tracer: 200 OK
+    deactivate Tracer
+```
+
 ## Prerequisites
 
 - An LLM backend: either **OpenAI-compatible** (e.g. OpenAI, vLLM, Ollama) or **Vertex AI** (Claude on Vertex)
