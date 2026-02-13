@@ -64,9 +64,15 @@ graph TD
         A -- Traces --> H
         H -- Scores --> A
         
-        I["LLM Service<br/>(vLLM / OpenAI)"]
-        B <-->|"Chat Completion"| I
-        G -.->|"Embeddings (Ingest)"| I
+        subgraph I ["LLM Service (vLLM / Ollama)"]
+            direction TB
+            I1[Chat Model<br/>(gpt-oss-20b)]
+            I2[Embedding Model<br/>(nomic-embed-text)]
+        end
+
+        B <-->|"Chat Completion (Runtime)"| I1
+        G -.->|"Ingest (Setup)"| I2
+        G <-->|"Embed Query (Runtime)"| I2
     end
     
     subgraph User's Machine
