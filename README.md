@@ -66,8 +66,8 @@ graph TD
         
         subgraph I ["LLM Service (vLLM / Ollama)"]
             direction TB
-            I1[Chat Model<br/>(gpt-oss-20b)]
-            I2[Embedding Model<br/>(nomic-embed-text)]
+            I1["Chat Model<br/>(gpt-oss-20b)"]
+            I2["Embedding Model<br/>(nomic-embed-text)"]
         end
 
         B <-->|"Chat Completion (Runtime)"| I1
